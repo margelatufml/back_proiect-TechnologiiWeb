@@ -1,9 +1,8 @@
 import mysql from "mysql2/promise.js";
 import env from "dotenv";
-import Grup from "./Grup.js";
-import User from "./User.js";
-import Postari from "./Postare.js";
-import UtilizatoriGrupuri from "./UtilizatoriGrupuri.js";
+import Prieten from "./Prieten.js";
+import Utilizator from "./Utilizator.js";
+import Aliment from "./Aliment.js";
 import { db } from "../dbConfig.js";
 
 env.config();
@@ -17,7 +16,7 @@ async function Create_DB() {
 
     // Create the database if it doesn't exist
     await conn.query(
-      `CREATE DATABASE IF NOT EXISTS \`${process.env.DB_DATABASE}\`;`
+      `CREATE DATABASE IF NOT EXISTS ${process.env.DB_DATABASE};`
     );
     console.log("Database created or already exists.");
     await conn.end();
@@ -27,49 +26,39 @@ async function Create_DB() {
 }
 
 function FK_Config() {
-  User.hasMany(Postari, {
+  // 1-n Utilizator-Aliment
+  Utilizator.hasMany(Aliment, {
     foreignKey: "id_utilizator",
-    as: "posts",
+    as: "Alimente",
   });
-  Postari.belongsTo(User, {
+  Aliment.belongsTo(Utilizator, {
     foreignKey: "id_utilizator",
-    as: "user",
+    as: "Utilizator",
   });
 
-  User.belongsToMany(Grup, {
-    through: UtilizatoriGrupuri,
-    foreignKey: "id_utilizatori",
-    otherKey: "id_grup",
-    as: "groups",
+  // 1-n Utilizator-Prieten (user who owns the friendship)
+  Utilizator.hasMany(Prieten, { 
+    foreignKey: "id_utilizator",
+    as: "OwnedFriends",
+  });
+  Prieten.belongsTo(Utilizator, {
+    foreignKey: "id_utilizator",
+    as: "Owner",
   });
 
-  Grup.belongsToMany(User, {
-    through: UtilizatoriGrupuri,
-    foreignKey: "id_grup",
-    otherKey: "id_utilizatori",
-    as: "users",
+  // 1-n Utilizator-Prieten (user who is the friend)
+  Utilizator.hasMany(Prieten, {
+    foreignKey: "id_prieten_utilizator",
+    as: "FriendOf",
   });
-
-  Grup.hasMany(UtilizatoriGrupuri, {
-    foreignKey: "id_grup",
-    as: "groupMembers",
-  });
-  UtilizatoriGrupuri.belongsTo(Grup, {
-    foreignKey: "id_grup",
-    as: "group",
-  });
-
-  User.hasMany(UtilizatoriGrupuri, {
-    foreignKey: "id_utilizator_admin",
-    as: "adminGroups",
-  });
-  UtilizatoriGrupuri.belongsTo(User, {
-    foreignKey: "id_utilizator_admin",
-    as: "admin",
+  Prieten.belongsTo(Utilizator, {
+    foreignKey: "id_prieten_utilizator",
+    as: "Friend",
   });
 
   console.log("Foreign key relationships configured.");
 }
+
 
 async function DB_init() {
   await Create_DB(); // Ensure the database exists
