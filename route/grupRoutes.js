@@ -1,5 +1,5 @@
 import express from "express";
-import Grup from "../entities/Grup.js";
+import Prieten from "../entities/Prieten.js";
 
 const router = express.Router();
 
@@ -7,7 +7,7 @@ const router = express.Router();
 router.post("/", async (req, res) => {
   try {
     const { nume_grup, descriere, image, data_infiintare } = req.body;
-    const grup = await Grup.create({
+    const grup = await Prieten.create({
       nume_grup,
       descriere,
       image,
@@ -24,7 +24,7 @@ router.post("/", async (req, res) => {
 // Get all groups
 router.get("/", async (req, res) => {
   try {
-    const groups = await Grup.findAll();
+    const groups = await Prieten.findAll();
     res.status(200).json(groups);
   } catch (err) {
     res

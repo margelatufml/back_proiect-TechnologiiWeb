@@ -1,5 +1,5 @@
 import express from "express";
-import User from "../entities/User.js";
+import User from "../entities/Utilizator.js";
 
 const router = express.Router();
 

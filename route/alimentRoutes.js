@@ -1,13 +1,13 @@
 import express from "express";
-import Postari from "../entities/Postare.js";
+import Aliment from "../entities/Aliment.js";
 
-const router = express.Router();
+const alimentRoutes = express.Router();
 
-// Create a new post
+//CREATE
 router.post("/", async (req, res) => {
   try {
     const { id_utilizator, continut, data_postare, image } = req.body;
-    const post = await Postari.create({
+    const post = await Aliment.create({
       id_utilizator,
       continut,
       data_postare,
@@ -17,14 +17,14 @@ router.post("/", async (req, res) => {
   } catch (err) {
     res
       .status(500)
-      .json({ error: "Error creating post", details: err.message });
+      .json({ error: "Error creating aliment", details: err.message });
   }
 });
 
 // Get all posts
 router.get("/", async (req, res) => {
   try {
-    const posts = await Postari.findAll();
+    const posts = await Aliment.findAll();
     res.status(200).json(posts);
   } catch (err) {
     res
