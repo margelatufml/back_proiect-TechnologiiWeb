@@ -14,10 +14,9 @@ env.config();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-
-
 app.use("/api", createDBRouter)
-// Register routes
+
+// ROUTES
 app.use("/api", userRoutes);
 app.use("/api", alimentRoutes);
 app.use("/api", prietenRoutes)
