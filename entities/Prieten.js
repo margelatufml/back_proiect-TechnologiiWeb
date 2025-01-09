@@ -4,10 +4,10 @@ import { Sequelize, DataTypes } from "sequelize";
 const Prieten = db.define(
   "Prieten",
   {
-    nr: {
+    id_prietenie: {
       type: Sequelize.INTEGER,
       primaryKey: true,
-      autoIncrement: false,
+      autoIncrement: true,
       allowNull: false
     },
 
