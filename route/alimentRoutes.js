@@ -1,10 +1,13 @@
+// src/routes/alimentRoutes.js
 import express from "express";
 import Aliment from "../entities/Aliment.js";
+import Sequelize from "sequelize";
+import axios from "axios";
 
 const alimentRoutes = express.Router();
 alimentRoutes.use(express.json());
 
-//CREATE
+// CREATE
 alimentRoutes.post("/aliment", async (req, res) => {
   try {
     const { id_utilizator, categorie, continut, data_expirare, disponibil } =
@@ -87,7 +90,7 @@ alimentRoutes.post("/aliment", async (req, res) => {
   }
 });
 
-//GET ALL
+// GET ALL
 alimentRoutes.get("/alimente", async (req, res) => {
   try {
     const posts = await Aliment.findAll();
@@ -99,7 +102,7 @@ alimentRoutes.get("/alimente", async (req, res) => {
   }
 });
 
-//GET ALL FROM UTILIZATOR ID
+// GET ALL FROM UTILIZATOR ID
 alimentRoutes.get("/aliment/:id_utilizator", async (req, res) => {
   try {
     const { id_utilizator } = req.params;
@@ -113,7 +116,7 @@ alimentRoutes.get("/aliment/:id_utilizator", async (req, res) => {
   }
 });
 
-//GET ALL FROM UTILIZATOR ID & DISPONIBIL = TRUE
+// GET ALL FROM UTILIZATOR ID & DISPONIBIL = TRUE
 alimentRoutes.get("/aliment/disponibil/:id_utilizator", async (req, res) => {
   try {
     const { id_utilizator } = req.params;
@@ -129,7 +132,7 @@ alimentRoutes.get("/aliment/disponibil/:id_utilizator", async (req, res) => {
   }
 });
 
-//UPDATE ID_UTILIZATOR FROM ALIMENTE (claim pe aliment)
+// UPDATE ID_UTILIZATOR FROM ALIMENTE (claim pe aliment)
 alimentRoutes.put("/aliment/:id", async (req, res) => {
   try {
     const { id } = req.params; // Extract aliment ID from the route parameter
@@ -154,7 +157,8 @@ alimentRoutes.put("/aliment/:id", async (req, res) => {
       .json({ error: "Error updating id_utilizator", details: err.message });
   }
 });
-//UPDATE DISPONIBIL(toggle) FROM ALIMENTE
+
+// UPDATE DISPONIBIL (toggle) FROM ALIMENTE
 alimentRoutes.put("/aliment/:id/toggle", async (req, res) => {
   try {
     const { id } = req.params;
@@ -222,6 +226,7 @@ alimentRoutes.get("/aliment/:id_utilizator/:categorie", async (req, res) => {
   }
 });
 
+// GET ALERTS
 alimentRoutes.get("/alerts/:id_utilizator", async (req, res) => {
   try {
     const { id_utilizator } = req.params;
@@ -249,6 +254,77 @@ alimentRoutes.get("/alerts/:id_utilizator", async (req, res) => {
     return res
       .status(500)
       .json({ error: "Error fetching alerts", details: err.message });
+  }
+});
+
+// NEW ENDPOINT: POST /aliment/instagram/post
+alimentRoutes.post("/aliment/instagram/post", async (req, res) => {
+  try {
+    const { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ error: "userId is required." });
+    }
+
+    // Fetch available alimente for the user
+    const availableAlimente = await Aliment.findAll({
+      where: { id_utilizator: userId, disponibil: true },
+    });
+
+    if (availableAlimente.length === 0) {
+      return res.status(400).json({ error: "No available alimente to share." });
+    }
+
+    // Format the message
+    const messageLines = availableAlimente.map(
+      (aliment) => `• ${aliment.continut} (${aliment.categorie})`
+    );
+    const message = `I have the following products available to claim:\n${messageLines.join(
+      "\n"
+    )}`;
+
+    // Instagram Graph API credentials and endpoints
+    const instagramAccountId = process.env.INSTAGRAM_ACCOUNT_ID; // Ensure this is set in your environment variables
+    const accessToken = process.env.INSTAGRAM_ACCESS_TOKEN; // Ensure this is set in your environment variables
+
+    if (!instagramAccountId || !accessToken) {
+      return res.status(500).json({
+        error: "Instagram Account ID or Access Token is not configured.",
+      });
+    }
+
+    // Step 1: Create a media object with the message as a caption
+    const mediaUrl = `https://graph.facebook.com/v15.0/${instagramAccountId}/media`;
+
+    const mediaResponse = await axios.post(mediaUrl, {
+      caption: message,
+      access_token: accessToken,
+    });
+
+    const creationId = mediaResponse.data.id;
+
+    // Step 2: Publish the media object
+    const publishUrl = `https://graph.facebook.com/v15.0/${instagramAccountId}/media_publish`;
+
+    const publishResponse = await axios.post(publishUrl, {
+      creation_id: creationId,
+      access_token: accessToken,
+    });
+
+    const postId = publishResponse.data.id;
+
+    return res
+      .status(200)
+      .json({ message: "Post created successfully.", postId });
+  } catch (error) {
+    console.error(
+      "Error posting to Instagram:",
+      error.response?.data || error.message
+    );
+    return res.status(500).json({
+      error: "Error posting to Instagram.",
+      details: error.message,
+    });
   }
 });
 
