@@ -1,14 +1,18 @@
 // src/routes/alimentRoutes.js
+
 import express from "express";
 import Aliment from "../entities/Aliment.js";
 import Sequelize from "sequelize";
 import axios from "axios";
 
+// IMPORTANT: import the authMiddleware
+import authMiddleware from "../authMiddleware.js";
+
 const alimentRoutes = express.Router();
 alimentRoutes.use(express.json());
 
-// CREATE
-alimentRoutes.post("/aliment", async (req, res) => {
+// CREATE (protected)
+alimentRoutes.post("/aliment", authMiddleware, async (req, res) => {
   try {
     const { id_utilizator, categorie, continut, data_expirare, disponibil } =
       req.body;
@@ -90,8 +94,8 @@ alimentRoutes.post("/aliment", async (req, res) => {
   }
 });
 
-// GET ALL
-alimentRoutes.get("/alimente", async (req, res) => {
+// GET ALL (protected)
+alimentRoutes.get("/alimente", authMiddleware, async (req, res) => {
   try {
     const posts = await Aliment.findAll();
     return res.status(200).json(posts);
@@ -102,46 +106,53 @@ alimentRoutes.get("/alimente", async (req, res) => {
   }
 });
 
-// GET ALL FROM UTILIZATOR ID
-alimentRoutes.get("/aliment/:id_utilizator", async (req, res) => {
-  try {
-    const { id_utilizator } = req.params;
-    const posts = await Aliment.findAll({ where: { id_utilizator } });
-    return res.status(200).json(posts);
-  } catch (err) {
-    return res.status(500).json({
-      error: "Error fetching posts for utilizator",
-      details: err.message,
-    });
+// GET ALL FROM UTILIZATOR ID (protected)
+alimentRoutes.get(
+  "/aliment/:id_utilizator",
+  authMiddleware,
+  async (req, res) => {
+    try {
+      const { id_utilizator } = req.params;
+      const posts = await Aliment.findAll({ where: { id_utilizator } });
+      return res.status(200).json(posts);
+    } catch (err) {
+      return res.status(500).json({
+        error: "Error fetching posts for utilizator",
+        details: err.message,
+      });
+    }
   }
-});
+);
 
-// GET ALL FROM UTILIZATOR ID & DISPONIBIL = TRUE
-alimentRoutes.get("/aliment/disponibil/:id_utilizator", async (req, res) => {
-  try {
-    const { id_utilizator } = req.params;
-    const posts = await Aliment.findAll({
-      where: { id_utilizator, disponibil: true },
-    });
-    return res.status(200).json(posts);
-  } catch (err) {
-    return res.status(500).json({
-      error: "Error fetching posts for utilizator",
-      details: err.message,
-    });
+// GET ALL FROM UTILIZATOR ID & DISPONIBIL = TRUE (protected)
+alimentRoutes.get(
+  "/aliment/disponibil/:id_utilizator",
+  authMiddleware,
+  async (req, res) => {
+    try {
+      const { id_utilizator } = req.params;
+      const posts = await Aliment.findAll({
+        where: { id_utilizator, disponibil: true },
+      });
+      return res.status(200).json(posts);
+    } catch (err) {
+      return res.status(500).json({
+        error: "Error fetching posts for utilizator",
+        details: err.message,
+      });
+    }
   }
-});
+);
 
-// UPDATE ID_UTILIZATOR FROM ALIMENTE (claim pe aliment)
-alimentRoutes.put("/aliment/:id", async (req, res) => {
+// UPDATE ID_UTILIZATOR FROM ALIMENTE (claim pe aliment) (protected)
+alimentRoutes.put("/aliment/:id", authMiddleware, async (req, res) => {
   try {
-    const { id } = req.params; // Extract aliment ID from the route parameter
-    const { id_utilizator } = req.body; // Extract new id_utilizator from request body
+    const { id } = req.params; // Extract aliment ID
+    const { id_utilizator } = req.body; // Extract new id_utilizator
 
-    // Update using the correct primary key
     const updated = await Aliment.update(
       { id_utilizator, disponibil: false }, // Fields to update
-      { where: { id_aliment: id } } // Specify which aliment to update
+      { where: { id_aliment: id } } // Which aliment to update
     );
 
     if (updated[0] === 0) {
@@ -158,8 +169,8 @@ alimentRoutes.put("/aliment/:id", async (req, res) => {
   }
 });
 
-// UPDATE DISPONIBIL (toggle) FROM ALIMENTE
-alimentRoutes.put("/aliment/:id/toggle", async (req, res) => {
+// UPDATE DISPONIBIL (toggle) FROM ALIMENTE (protected)
+alimentRoutes.put("/aliment/:id/toggle", authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -169,7 +180,7 @@ alimentRoutes.put("/aliment/:id/toggle", async (req, res) => {
     }
 
     aliment.disponibil = !aliment.disponibil;
-    await aliment.save(); // Save changes to the database
+    await aliment.save();
 
     return res
       .status(200)
@@ -181,8 +192,8 @@ alimentRoutes.put("/aliment/:id/toggle", async (req, res) => {
   }
 });
 
-// DELETE ALIMENT
-alimentRoutes.delete("/aliment/:id", async (req, res) => {
+// DELETE ALIMENT (protected)
+alimentRoutes.delete("/aliment/:id", authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -199,133 +210,147 @@ alimentRoutes.delete("/aliment/:id", async (req, res) => {
   }
 });
 
-// GET ALL ALIMENTE FROM UTILIZATOR ID & CATEGORY
-alimentRoutes.get("/aliment/:id_utilizator/:categorie", async (req, res) => {
-  try {
-    const { id_utilizator, categorie } = req.params;
+// GET ALL ALIMENTE FROM UTILIZATOR ID & CATEGORY (protected)
+alimentRoutes.get(
+  "/aliment/:id_utilizator/:categorie",
+  authMiddleware,
+  async (req, res) => {
+    try {
+      const { id_utilizator, categorie } = req.params;
 
-    const alimente = await Aliment.findAll({
-      where: {
-        id_utilizator, // Match the user ID
-        categorie, // Match the category
-      },
-    });
-
-    if (alimente.length === 0) {
-      return res.status(404).json({
-        error: "No alimente found for the given utilizator and category",
-      });
-    }
-
-    return res.status(200).json(alimente);
-  } catch (err) {
-    return res.status(500).json({
-      error: "Error fetching alimente by utilizator and category",
-      details: err.message,
-    });
-  }
-});
-
-// GET ALERTS
-alimentRoutes.get("/alerts/:id_utilizator", async (req, res) => {
-  try {
-    const { id_utilizator } = req.params;
-
-    const threeDaysFromNow = new Date();
-    threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
-
-    const alerts = await Aliment.findAll({
-      where: {
-        id_utilizator,
-        data_expirare: {
-          [Sequelize.Op.lte]: threeDaysFromNow,
+      const alimente = await Aliment.findAll({
+        where: {
+          id_utilizator,
+          categorie,
         },
-        disponibil: true,
-      },
-    });
+      });
 
-    if (alerts.length === 0) {
-      return res.status(404).json({ message: "No expiring products found." });
-    }
+      if (alimente.length === 0) {
+        return res.status(404).json({
+          error: "No alimente found for the given utilizator and category",
+        });
+      }
 
-    return res.status(200).json(alerts);
-  } catch (err) {
-    console.error("Error fetching alerts:", err);
-    return res
-      .status(500)
-      .json({ error: "Error fetching alerts", details: err.message });
-  }
-});
-
-// NEW ENDPOINT: POST /aliment/instagram/post
-alimentRoutes.post("/aliment/instagram/post", async (req, res) => {
-  try {
-    const { userId } = req.body;
-
-    if (!userId) {
-      return res.status(400).json({ error: "userId is required." });
-    }
-
-    // Fetch available alimente for the user
-    const availableAlimente = await Aliment.findAll({
-      where: { id_utilizator: userId, disponibil: true },
-    });
-
-    if (availableAlimente.length === 0) {
-      return res.status(400).json({ error: "No available alimente to share." });
-    }
-
-    // Format the message
-    const messageLines = availableAlimente.map(
-      (aliment) => `• ${aliment.continut} (${aliment.categorie})`
-    );
-    const message = `I have the following products available to claim:\n${messageLines.join(
-      "\n"
-    )}`;
-
-    // Instagram Graph API credentials and endpoints
-    const instagramAccountId = process.env.INSTAGRAM_ACCOUNT_ID; // Ensure this is set in your environment variables
-    const accessToken = process.env.INSTAGRAM_ACCESS_TOKEN; // Ensure this is set in your environment variables
-
-    if (!instagramAccountId || !accessToken) {
+      return res.status(200).json(alimente);
+    } catch (err) {
       return res.status(500).json({
-        error: "Instagram Account ID or Access Token is not configured.",
+        error: "Error fetching alimente by utilizator and category",
+        details: err.message,
       });
     }
-
-    // Step 1: Create a media object with the message as a caption
-    const mediaUrl = `https://graph.facebook.com/v15.0/${instagramAccountId}/media`;
-
-    const mediaResponse = await axios.post(mediaUrl, {
-      caption: message,
-      access_token: accessToken,
-    });
-
-    const creationId = mediaResponse.data.id;
-
-    // Step 2: Publish the media object
-    const publishUrl = `https://graph.facebook.com/v15.0/${instagramAccountId}/media_publish`;
-
-    const publishResponse = await axios.post(publishUrl, {
-      creation_id: creationId,
-      access_token: accessToken,
-    });
-
-    const postId = publishResponse.data.id;
-
-    return res
-      .status(200)
-      .json({ message: "Post created successfully.", postId });
-  } catch (error) {
-    console.error(
-      "Error posting to Instagram:",
-      error.response?.data || error.message
-    );
-    return res.status(500).json({
-      error: "Error posting to Instagram.",
-      details: error.message,
-    });
   }
-});
+);
+
+// GET ALERTS (protected)
+alimentRoutes.get(
+  "/alerts/:id_utilizator",
+  authMiddleware,
+  async (req, res) => {
+    try {
+      const { id_utilizator } = req.params;
+
+      const threeDaysFromNow = new Date();
+      threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
+
+      const alerts = await Aliment.findAll({
+        where: {
+          id_utilizator,
+          data_expirare: {
+            [Sequelize.Op.lte]: threeDaysFromNow,
+          },
+          disponibil: true,
+        },
+      });
+
+      if (alerts.length === 0) {
+        return res.status(404).json({ message: "No expiring products found." });
+      }
+
+      return res.status(200).json(alerts);
+    } catch (err) {
+      console.error("Error fetching alerts:", err);
+      return res
+        .status(500)
+        .json({ error: "Error fetching alerts", details: err.message });
+    }
+  }
+);
+
+// NEW ENDPOINT: POST /aliment/instagram/post (protected)
+alimentRoutes.post(
+  "/aliment/instagram/post",
+  authMiddleware,
+  async (req, res) => {
+    try {
+      const { userId } = req.body;
+
+      if (!userId) {
+        return res.status(400).json({ error: "userId is required." });
+      }
+
+      // Fetch available alimente for the user
+      const availableAlimente = await Aliment.findAll({
+        where: { id_utilizator: userId, disponibil: true },
+      });
+
+      if (availableAlimente.length === 0) {
+        return res
+          .status(400)
+          .json({ error: "No available alimente to share." });
+      }
+
+      // Format the message
+      const messageLines = availableAlimente.map(
+        (aliment) => `• ${aliment.continut} (${aliment.categorie})`
+      );
+      const message = `I have the following products available to claim:\n${messageLines.join(
+        "\n"
+      )}`;
+
+      // Instagram Graph API credentials
+      const instagramAccountId = process.env.INSTAGRAM_ACCOUNT_ID;
+      const accessToken = process.env.INSTAGRAM_ACCESS_TOKEN;
+
+      if (!instagramAccountId || !accessToken) {
+        return res.status(500).json({
+          error: "Instagram Account ID or Access Token is not configured.",
+        });
+      }
+
+      // Step 1: Create a media object with the message as a caption
+      const mediaUrl = `https://graph.facebook.com/v15.0/${instagramAccountId}/media`;
+
+      const mediaResponse = await axios.post(mediaUrl, {
+        caption: message,
+        access_token: accessToken,
+      });
+
+      const creationId = mediaResponse.data.id;
+
+      // Step 2: Publish the media object
+      const publishUrl = `https://graph.facebook.com/v15.0/${instagramAccountId}/media_publish`;
+
+      const publishResponse = await axios.post(publishUrl, {
+        creation_id: creationId,
+        access_token: accessToken,
+      });
+
+      const postId = publishResponse.data.id;
+
+      return res
+        .status(200)
+        .json({ message: "Post created successfully.", postId });
+    } catch (error) {
+      console.error(
+        "Error posting to Instagram:",
+        error.response?.data || error.message
+      );
+      return res.status(500).json({
+        error: "Error posting to Instagram.",
+        details: error.message,
+      });
+    }
+  }
+);
 
 export default alimentRoutes;
