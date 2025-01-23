@@ -150,10 +150,14 @@ alimentRoutes.put("/aliment/:id", authMiddleware, async (req, res) => {
     const { id } = req.params; // Extract aliment ID
     const { id_utilizator } = req.body; // Extract new id_utilizator
 
+    console.log(`Updating aliment with id: ${id}, new id_utilizator: ${id_utilizator}`);
+
     const updated = await Aliment.update(
       { id_utilizator, disponibil: false }, // Fields to update
       { where: { id_aliment: id } } // Which aliment to update
     );
+
+    console.log(`Update result: ${updated}`);
 
     if (updated[0] === 0) {
       return res.status(404).json({ error: "Aliment not found" });
@@ -163,6 +167,7 @@ alimentRoutes.put("/aliment/:id", authMiddleware, async (req, res) => {
       .status(200)
       .json({ message: "id_utilizator updated successfully" });
   } catch (err) {
+    console.error("Error updating id_utilizator:", err);
     return res
       .status(500)
       .json({ error: "Error updating id_utilizator", details: err.message });
